@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EC2 Instance Control</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 18px; color: #1f2937; }
+    h1 { font-size: 28px; }
+    button { padding: 10px 16px; margin: 8px 8px 8px 0; border: 0; border-radius: 5px; color: white; cursor: pointer; }
+    .start { background: #16803c; }
+    .stop { background: #c62828; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #message { margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <h1>EC2 Instance Control</h1>
+  <p>Manage your AWS EC2 instance.</p>
+  <button class="start" onclick="controlEC2('start')">Start EC2 Instance</button>
+  <button class="stop" onclick="controlEC2('stop')">Stop EC2 Instance</button>
+  <p id="message">Ready</p>
+  <script>
+    // Replace these with the API Gateway invoke URLs for your two Lambda functions.
+    const START_API_URL = "PASTE_START_API_GATEWAY_URL_HERE";
+    const STOP_API_URL  = "PASTE_STOP_API_GATEWAY_URL_HERE";
+
+    async function controlEC2(action) {
+      const url = action === "start" ? START_API_URL : STOP_API_URL;
+      const message = document.getElementById("message");
+      const buttons = document.querySelectorAll("button");
+
+      if (url.includes("_HERE")) {
+        message.textContent = "Configure the " + action + " API URL in index.html first.";
+        return;
+      }
+      if (!confirm("Are you sure you want to " + action + " EC2?")) return;
+
+      buttons.forEach(button => button.disabled = true);
+      message.textContent = "Sending " + action + " request...";
+
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action })
+        });
+        const text = await response.text();
+        if (!response.ok) throw new Error("HTTP " + response.status + ": " + text);
+        message.textContent = "EC2 " + action + " request submitted. Check AWS EC2 for the final state.";
+      } catch (error) {
+        message.textContent = "Request failed: " + error.message + ". Check API URL, CORS, API Gateway and Lambda logs.";
+      } finally {
+        buttons.forEach(button => button.disabled = false);
+      }
+    }
+  </script>
+</body>
+</html>
